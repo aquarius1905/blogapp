@@ -1,0 +1,132 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Blog;
+use App\Http\Requests\BlogRequest;
+
+class BlogController extends Controller
+{
+    /*
+    * ブログ一覧を表示する
+    *
+    * @return view
+    */
+    public function showList()
+    {
+        $blogs = Blog::all();
+        return view('blog.list', ['blogs' => $blogs]);
+    }
+
+    /*
+    * ブログ詳細を表示する
+    * @param int $id
+    * @return view
+    */
+    public function showDetail(Request $request, $id)
+    {
+        $blog = Blog::find($id);
+        if(is_null($blog))
+        {
+            $request->session()->flash('err_msg', 'データがありません');
+            return redirect()->route('blogs');
+        }
+        return view('blog.detail', ['blog' => $blog]);
+    }
+
+    /*
+    * ブログ登録画面を表示する
+    * @return view
+    */
+    public function showCreate()
+    {
+        return view('blog.form');
+    }
+
+    /*
+    * ブログを登録する
+    * @return view
+    */
+    public function exeStore(BlogRequest $request)
+    {
+        //ブログのデータを受け取る
+        $inputs = $request->all();
+        DB::beginTransaction();
+        try {
+            //ブログを登録する
+            Blog::create($inputs);
+            DB::commit();
+        } catch(Throwable $e) {
+            DB::roleback();
+            abort(500);
+        }
+
+        $request->session()->flash('err_msg', 'ブログを登録しました');
+        return redirect()->route('blogs');
+    }
+
+    /*
+    * ブログ編集フォームを表示する
+    * @param int $id
+    * @return view
+    */
+    public function showEdit(Request $request, $id)
+    {
+        $blog = Blog::find($id);
+        if(is_null($blog))
+        {
+            $request->session()->flash('err_msg', 'データがありません');
+            return redirect()->route('blogs');
+        }
+        return view('blog.edit', ['blog' => $blog]);
+    }
+
+
+    /*
+    * ブログを更新する
+    * @return view
+    */
+    public function exeUpdate(BlogRequest $request)
+    {
+        //ブログのデータを受け取る
+        $inputs = $request->all();
+        unset($inputs['_token']);
+        DB::beginTransaction();
+        try {
+            //ブログを更新する
+            Blog::where('id', $request->id)->update($inputs);
+            DB::commit();
+        } catch(Throwable $e) {
+            DB::roleback();
+            abort(500);
+        }
+
+        $request->session()->flash('err_msg', 'ブログを更新しました');
+        return redirect()->route('blogs');
+    }
+
+    /*
+    * ブログ削除
+    * @param int $id
+    * @return view
+    */
+    public function exeDelete(Request $request, $id)
+    {
+        dd($id);
+        if(empty($id))
+        {
+            $request->session()->flash('err_msg', 'データがありません');
+            return redirect()->route('blogs');
+        }
+
+        try {
+            Blog::destroy($id);
+        } catch(Throwable $e) {
+            abort(500);
+        }
+        $request->session()->flash('err_msg', '削除しました。');
+        return redirect()->route('blogs');
+    }
+}
